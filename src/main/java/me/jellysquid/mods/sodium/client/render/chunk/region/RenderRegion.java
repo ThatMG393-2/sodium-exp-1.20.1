@@ -5,7 +5,9 @@ import me.jellysquid.mods.sodium.client.gl.arena.GlBufferArena;
 import me.jellysquid.mods.sodium.client.gl.arena.staging.StagingBuffer;
 import me.jellysquid.mods.sodium.client.gl.buffer.GlBuffer;
 import me.jellysquid.mods.sodium.client.gl.device.CommandList;
+import net.caffeinemc.mods.sodium.client.gl.device.MultiDrawBatch;
 import me.jellysquid.mods.sodium.client.gl.tessellation.GlTessellation;
+import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
 import me.jellysquid.mods.sodium.client.render.chunk.data.SectionRenderDataStorage;
 import me.jellysquid.mods.sodium.client.render.chunk.lists.ChunkRenderList;
@@ -49,6 +51,8 @@ public class RenderRegion {
 
     private final Map<TerrainRenderPass, SectionRenderDataStorage> sectionRenderData = new Reference2ReferenceOpenHashMap<>();
     private DeviceResources resources;
+
+    private final Map<TerrainRenderPass, MultiDrawBatch> cachedBatches = new Reference2ReferenceOpenHashMap<>();
 
     public RenderRegion(int x, int y, int z, StagingBuffer stagingBuffer) {
         this.x = x;
@@ -100,6 +104,39 @@ public class RenderRegion {
         }
 
         Arrays.fill(this.sections, null);
+
+        for (var batch : this.cachedBatches.values()) {
+            batch.delete();
+        }
+        this.cachedBatches.clear();
+     }
+ 
+    public void clearAllCachedBatches() {
+        for (var batch : this.cachedBatches.values()) {
+            batch.clear();
+        }
+    }
+ 
+    public void clearCachedBatchFor(TerrainRenderPass pass) {
+        var batch = this.cachedBatches.remove(pass);
+        if (batch != null) {
+            batch.delete();
+        }
+    }
+ 
+    public MultiDrawBatch getCachedBatch(TerrainRenderPass pass) {
+        MultiDrawBatch batch = this.cachedBatches.get(pass);
+        if (batch != null) {
+            if (this.renderList.getAndResetCacheInvalidation()) {
+                batch.clear();
+            }
+            return batch;
+        }
+ 
+         
+        batch = new MultiDrawBatch((ModelQuadFacing.COUNT * RenderRegion.REGION_SIZE) + 1);
+        this.cachedBatches.put(pass, batch);
+        return batch;
     }
 
     public boolean isEmpty() {

@@ -28,14 +28,11 @@ import org.lwjgl.system.MemoryUtil;
 import java.util.Iterator;
 
 public class DefaultChunkRenderer extends ShaderChunkRenderer {
-    private final MultiDrawBatch batch;
-
     private final SharedQuadIndexBuffer sharedIndexBuffer;
 
     public DefaultChunkRenderer(RenderDevice device, ChunkVertexType vertexType) {
         super(device, vertexType);
 
-        this.batch = new MultiDrawBatch((ModelQuadFacing.COUNT * RenderRegion.REGION_SIZE) + 1);
         this.sharedIndexBuffer = new SharedQuadIndexBuffer(device.createCommandList(), SharedQuadIndexBuffer.IndexType.INTEGER);
     }
 
@@ -65,18 +62,21 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
                 continue;
             }
 
-            fillCommandBuffer(this.batch, region, storage, renderList, camera, renderPass, useBlockFaceCulling);
-
-            if (this.batch.isEmpty()) {
+            var batch = region.getCachedBatch(renderPass);
+            if (!batch.isFilled) {
+                fillCommandBuffer(batch, region, storage, renderList, camera, renderPass, useBlockFaceCulling, useIndexedTessellation);
+            }
+            
+            if (batch.isEmpty()) {
                 continue;
             }
 
-            this.sharedIndexBuffer.ensureCapacity(commandList, this.batch.getIndexBufferSize());
+            this.sharedIndexBuffer.ensureCapacity(commandList, batch.getIndexBufferSize());
 
             var tessellation = this.prepareTessellation(commandList, region);
 
             setModelMatrixUniforms(shader, region, camera);
-            executeDrawBatch(commandList, tessellation, this.batch);
+            executeDrawBatch(commandList, tessellation, batch);
         }
 
         super.end(renderPass);
@@ -89,7 +89,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
                                           CameraTransform camera,
                                           TerrainRenderPass pass,
                                           boolean useBlockFaceCulling) {
-        batch.clear();
+        batch.isFilled = true;
 
         var iterator = renderList.sectionsWithGeometryIterator(pass.isReverseOrder());
 
@@ -245,6 +245,5 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
         super.delete(commandList);
 
         this.sharedIndexBuffer.delete(commandList);
-        this.batch.delete();
     }
 }

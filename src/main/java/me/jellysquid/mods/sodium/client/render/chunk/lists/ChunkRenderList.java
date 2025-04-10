@@ -13,6 +13,7 @@ public class ChunkRenderList {
 
     private final byte[] sectionsWithGeometry = new byte[RenderRegion.REGION_SIZE];
     private int sectionsWithGeometryCount = 0;
+    private int prevSectionsWithGeometryCount = 0;
 
     private final byte[] sectionsWithSprites = new byte[RenderRegion.REGION_SIZE];
     private int sectionsWithSpritesCount = 0;
@@ -30,6 +31,7 @@ public class ChunkRenderList {
 
     public void reset(int frame) {
         this.sectionsWithGeometryCount = 0;
+        this.prevSectionsWithGeometryCount = this.sectionsWithGeometryCount;
         this.sectionsWithSpritesCount = 0;
         this.sectionsWithEntitiesCount = 0;
 
@@ -44,17 +46,29 @@ public class ChunkRenderList {
 
         this.size++;
 
-        int index = render.getSectionIndex();
+        byte index = (byte) render.getSectionIndex();
         int flags = render.getFlags();
 
-        this.sectionsWithGeometry[this.sectionsWithGeometryCount] = (byte) index;
-        this.sectionsWithGeometryCount += (flags >>> RenderSectionFlags.HAS_BLOCK_GEOMETRY) & 1;
+        if (((flags >>> RenderSectionFlags.HAS_BLOCK_GEOMETRY) & 1) != 0) {
+            if (this.sectionsWithGeometry[this.sectionsWithGeometryCount] != index) {
+                this.sectionsWithGeometry[this.sectionsWithGeometryCount] = index;
+                this.prevSectionsWithGeometryCount = -1;
+            }
+            this.sectionsWithGeometryCount++;
+        }
 
-        this.sectionsWithSprites[this.sectionsWithSpritesCount] = (byte) index;
+        this.sectionsWithSprites[this.sectionsWithSpritesCount] = index;
         this.sectionsWithSpritesCount += (flags >>> RenderSectionFlags.HAS_ANIMATED_SPRITES) & 1;
 
-        this.sectionsWithEntities[this.sectionsWithEntitiesCount] = (byte) index;
+        this.sectionsWithEntities[this.sectionsWithEntitiesCount] = index;
         this.sectionsWithEntitiesCount += (flags >>> RenderSectionFlags.HAS_BLOCK_ENTITIES) & 1;
+    }
+
+    public boolean getAndResetCacheInvalidation() {
+        var cacheIsInvalidated = this.prevSectionsWithGeometryCount != this.sectionsWithGeometryCount;
+        this.prevSectionsWithGeometryCount = this.sectionsWithGeometryCount;
+
+        return cacheIsInvalidated;
     }
 
     public @Nullable ByteIterator sectionsWithGeometryIterator(boolean reverse) {
