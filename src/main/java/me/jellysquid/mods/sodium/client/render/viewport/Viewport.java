@@ -1,18 +1,18 @@
 package me.jellysquid.mods.sodium.client.render.viewport;
 
-import me.jellysquid.mods.sodium.client.render.viewport.frustum.Frustum;
+import me.jellysquid.mods.sodium.client.render.viewport.frustum.SimpleFrustum;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.joml.Vector3d;
 
 public final class Viewport {
-    private final Frustum frustum;
+    private final SimpleFrustum frustum;
     private final CameraTransform transform;
 
     private final ChunkSectionPos chunkCoords;
     private final BlockPos blockCoords;
 
-    public Viewport(Frustum frustum, Vector3d position) {
+    public Viewport(SimpleFrustum frustum, Vector3d position) {
         this.frustum = frustum;
         this.transform = new CameraTransform(position.x, position.y, position.z);
 
@@ -25,20 +25,12 @@ public final class Viewport {
         this.blockCoords = BlockPos.ofFloored(position.x, position.y, position.z);
     }
 
-    public boolean isBoxVisible(int intOriginX, int intOriginY, int intOriginZ, float floatSizeX, float floatSizeY, float floatSizeZ) {
+    public boolean isBoxVisible(int intOriginX, int intOriginY, int intOriginZ) {
         float floatOriginX = (intOriginX - this.transform.intX) - this.transform.fracX;
         float floatOriginY = (intOriginY - this.transform.intY) - this.transform.fracY;
         float floatOriginZ = (intOriginZ - this.transform.intZ) - this.transform.fracZ;
 
-        return this.frustum.testAab(
-                floatOriginX - floatSizeX,
-                floatOriginY - floatSizeY,
-                floatOriginZ - floatSizeZ,
-
-                floatOriginX + floatSizeX,
-                floatOriginY + floatSizeY,
-                floatOriginZ + floatSizeZ
-        );
+        return this.frustum.testCubeFast(floatOriginX, floatOriginY, floatOriginZ);
     }
 
     public CameraTransform getTransform() {
