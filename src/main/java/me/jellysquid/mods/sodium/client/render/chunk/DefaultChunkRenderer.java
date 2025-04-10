@@ -64,7 +64,7 @@ public class DefaultChunkRenderer extends ShaderChunkRenderer {
 
             var batch = region.getCachedBatch(renderPass);
             if (!batch.isFilled) {
-                fillCommandBuffer(batch, region, storage, renderList, camera, renderPass, useBlockFaceCulling, useIndexedTessellation);
+                fillCommandBuffer(batch, region, storage, renderList, camera, renderPass, useBlockFaceCulling);
             }
             
             if (batch.isEmpty()) {
