@@ -1,6 +1,9 @@
 package me.jellysquid.mods.sodium.client.render.viewport.frustum;
 
 import org.joml.FrustumIntersection;
+import org.joml.Vector4f;
+ 
+import java.lang.reflect.Field;
 
 public final class SimpleFrustum implements Frustum {
     // The bounding box of a chunk section must be large enough to contain all possible geometry within it. Block models
